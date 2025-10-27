@@ -1,0 +1,225 @@
+import spidev
+import RPi.GPIO as GPIO
+import time
+
+# FSYNC pin定義
+FSYNC1 = 12
+FSYNC2 = 16
+FSYNC3 = 20
+FSYNC4 = 21
+FSYNC5 = 6
+FSYNC6 = 13
+FSYNC7 = 19
+FSYNC8 = 26
+# spi定数
+MCLK = 25_000_000 #AD9833用のクロック周波数
+
+# SPI初期化
+spi =  spidev.SpiDev()
+spi.open(0,0)
+spi.max_speed_hz = 500000
+spi.mode = 2
+
+# GPIO初期化
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(FSYNC1, GPIO.OUT)
+GPIO.setup(FSYNC2, GPIO.OUT)
+GPIO.setup(FSYNC3, GPIO.OUT)
+GPIO.setup(FSYNC4, GPIO.OUT)
+GPIO.setup(FSYNC5, GPIO.OUT)
+GPIO.setup(FSYNC6, GPIO.OUT)
+GPIO.setup(FSYNC7, GPIO.OUT)
+GPIO.setup(FSYNC8, GPIO.OUT)
+
+GPIO.output(FSYNC1, GPIO.HIGH)
+GPIO.output(FSYNC2, GPIO.HIGH)
+GPIO.output(FSYNC3, GPIO.HIGH)
+GPIO.output(FSYNC4, GPIO.HIGH)
+GPIO.output(FSYNC5, GPIO.HIGH)
+GPIO.output(FSYNC6, GPIO.HIGH)
+GPIO.output(FSYNC7, GPIO.HIGH)
+GPIO.output(FSYNC8, GPIO.HIGH) 
+
+def write_register(fsync_pin, value):
+    high_byte = (value >> 8) & 0xFF
+    low_byte = value & 0xFF
+    GPIO.output(fsync_pin, GPIO.LOW)
+    spi.xfer([high_byte, low_byte])
+    GPIO.output(fsync_pin, GPIO.HIGH)
+    
+
+def configure_device(fsync_pin, freq_hz, phase_deg):
+    freq_word = int((freq_hz * (1 << 28)) / MCLK)
+    phase_word = int((phase_deg / 360.0) * 4096) & 0x0FFF  # 12bit
+
+    write_register(fsync_pin, 0x2100)  # RESET = 1（波形出力停止）
+    time.sleep(0.01)
+    # FREQ0 書き込み
+    write_register(fsync_pin, 0x4000 | (freq_word & 0x3FFF))
+    write_register(fsync_pin, 0x4000 | ((freq_word >> 14) & 0x3FFF))
+    time.sleep(0.01)
+    # PHASE0 書き込み
+    write_register(fsync_pin, 0xC000 | phase_word)
+
+    # 出力モードはサイン波（通常はこれでOK、必要に応じて0x2000とまとめて書いても可）
+
+# 一斉にRESET解除（波形出力開始）
+def start_output(A):
+    if A == 1:
+        GPIO.output(FSYNC1, GPIO.LOW)
+        spi.xfer([0x20,0x00])
+        time.sleep(0.00000001)
+        GPIO.output(FSYNC1, GPIO.HIGH)
+        time.sleep(0.00000001)
+#         time.sleep(1)
+        write_register(FSYNC1, 0x2100)
+
+#         time.sleep(0.005)
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         time.sleep(0.0000001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         time.sleep(0.0000001)
+#         GPIO.output(FSYNC1, GPIO.LOW)
+
+#     elif A == 2:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC2, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC2, GPIO.HIGH)
+#         
+#     elif A == 3:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC3, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC3, GPIO.HIGH)
+#         
+#     elif A == 4:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC4, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC4, GPIO.HIGH)
+#         
+#     elif A == 5:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC5, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC5, GPIO.HIGH)
+#         
+#     elif A == 6:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC6, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC6, GPIO.HIGH)
+#         
+#     elif A == 7:
+#         GPIO.output(FSYNC1, GPIO.LOW)
+#         GPIO.output(FSYNC7, GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC7, GPIO.HIGH)
+#         
+    elif A == 8:
+        GPIO.output(FSYNC1, GPIO.LOW)
+        GPIO.output(FSYNC8, GPIO.LOW)
+        time.sleep(0.001)
+        spi.xfer([0x20,0x00])
+        GPIO.output(FSYNC1, GPIO.HIGH)
+        GPIO.output(FSYNC8, GPIO.HIGH)
+        
+#     elif A == 9:
+#         GPIO.output(FSYNC1,GPIO.LOW)
+#         GPIO.output(FSYNC2,GPIO.LOW)
+#         GPIO.output(FSYNC3,GPIO.LOW)
+#         GPIO.output(FSYNC4,GPIO.LOW)
+#         GPIO.output(FSYNC5,GPIO.LOW)
+#         GPIO.output(FSYNC6,GPIO.LOW)
+#         GPIO.output(FSYNC7,GPIO.LOW)
+#         GPIO.output(FSYNC8,GPIO.LOW)
+#         time.sleep(0.001)
+#         spi.xfer([0x20,0x00])
+#         GPIO.output(FSYNC1, GPIO.HIGH)
+#         GPIO.output(FSYNC2, GPIO.HIGH)
+#         GPIO.output(FSYNC3, GPIO.HIGH)
+#         GPIO.output(FSYNC4, GPIO.HIGH)
+#         GPIO.output(FSYNC5, GPIO.HIGH)
+#         GPIO.output(FSYNC6, GPIO.HIGH)
+#         GPIO.output(FSYNC7, GPIO.HIGH)
+#         GPIO.output(FSYNC8, GPIO.HIGH)
+    
+    time.sleep(0.1)
+   # write_register(FSYNC1, 0x2000)
+   # write_register(FSYNC2, 0x2000)
+    
+
+# 停止処理
+def stop_output():
+#     spi.xfer([0x20,0x00])
+    write_register(FSYNC1, 0x2100)
+    write_register(FSYNC2, 0x2100)
+    write_register(FSYNC3, 0x2100)
+    write_register(FSYNC4, 0x2100)
+    write_register(FSYNC5, 0x2100)
+    write_register(FSYNC6, 0x2100)
+    write_register(FSYNC7, 0x2100)
+    write_register(FSYNC8, 0x2100)
+#     spi.close()
+#     GPIO.cleanup()
+
+# 停止処理
+def stop_cleanup():
+#     spi.xfer([0x20,0x00])
+    write_register(FSYNC1, 0x2100)
+    write_register(FSYNC2, 0x2100)
+    write_register(FSYNC3, 0x2100)
+    write_register(FSYNC4, 0x2100)
+    write_register(FSYNC5, 0x2100)
+    write_register(FSYNC6, 0x2100)
+    write_register(FSYNC7, 0x2100)
+    write_register(FSYNC8, 0x2100)
+    spi.close()
+    GPIO.cleanup()
+    
+def phase_set(list):
+    configure_device(FSYNC1, 40000, list[0])
+    configure_device(FSYNC2, 40000, list[1])
+    configure_device(FSYNC3, 40000, list[2])
+    configure_device(FSYNC4, 40000, list[3])
+    configure_device(FSYNC5, 40000, list[4])
+    configure_device(FSYNC6, 40000, list[5])
+    configure_device(FSYNC7, 40000, list[6])
+    configure_device(FSYNC8, 40000, list[7])
+
+# 各チャンネルに周波数・位相を書き込み（リセット中）
+
+# for i in range(0, 1080, 180):
+#     print("deg2 ="+str(i)+"deg")
+#     configure_device(FSYNC1, 40000, 0)
+#     configure_device(FSYNC2, 40000, i)
+#     configure_device(FSYNC3, 40000, 0)
+#     configure_device(FSYNC4, 40000, i)
+#     configure_device(FSYNC5, 40000, 0)
+#     configure_device(FSYNC6, 40000, i)
+#     configure_device(FSYNC7, 40000, 0)
+#     configure_device(FSYNC8, 40000, i)
+# 
+#     
+#     print("AD9833 #1,2: 同時スタート")
+#     start_output(1)
+#     time.sleep(1)
+#         
+# 
+# stop_output()
+# print("end")
+
