@@ -1,5 +1,6 @@
 # Haptics_Gridserch
 空中音波ハプティクスのグリッドサーチを統合した版です。
+
 ##　使用技術一覧(パイソンくらい)
 <!-- 以下はシールド-->
 <img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout">
