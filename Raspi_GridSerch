@@ -1,0 +1,121 @@
+# ラズパイ側 (host)
+import speaker_module
+import serial
+import time
+import threading
+import numpy as np
+
+port = '/dev/ttyACM0'
+# タイムアウトを設定して readline() が永久にブロックしないようにする
+ser = serial.Serial(port, 115200, timeout=0.5)
+
+def kakikae(phase):
+    speaker_module.phase_set(phase)
+    
+def speakerON(A):
+    # 例: A が 0/1 でオンオフを制御すると仮定
+    speaker_module.start_output(A)
+
+def  str_to_num():
+
+    while True:
+        line = ser.readline().decode('utf-8').strip()  # 1行読み取る
+        if line:  # 空行でなければ
+            try:
+                value = float(line)  # 数値に変換
+                print("Received value:", value)
+                # ここでvalueを使って計算や保存ができる
+            except ValueError:
+                print("数値に変換できませんでした:", line)
+
+
+
+def pico_listener():
+    """常時シリアルを読み、行が来たら表示するスレッド"""
+    while True:
+        try:
+            line = ser.readline().decode('utf-8', errors='ignore').strip()
+            if line:
+                print(f"[PICO] {line}")
+        except Exception as e:
+            # 受信で例外が起きたらログ出しして短時間待つ
+            print(f"Serial read error: {e}")
+            time.sleep(0.1)
+            
+
+    def _get_observation(self):
+        speaker_module.start_output(self.source_num)
+        readings = [float(ser.readline().decode('utf-8').strip()) for _ in range(5)]
+        print(f"readings1:{max(readings):.2f}")
+        #print("Readings:", readings, max(readings))
+        speaker_module.stop_output()
+        return max(readings)
+
+
+listener_thread = threading.Thread(target=pico_listener, daemon=True)
+listener_thread.start()
+
+print("start")
+
+try:
+    while True:
+        # スピーカ/出力をオン（仮）
+        speakerON(1)
+        # Pico に測定開始を促すコマンドを送る
+        ser.write(b"READ\n")
+
+        while i = 0:
+            str_to_num()
+
+        gridserch(1)
+        # 連続で送りすぎないよう少し待機
+        time.sleep(0.5)
+
+        # Pico に測定開始を促すコマンドを送る
+        ser.write(b"READ\n")
+
+        while i = 0:
+            str_to_num()
+
+        gridserch(2)
+
+        
+        # 連続で送りすぎないよう少し待機
+        time.sleep(0.5)
+
+        # Pico に測定開始を促すコマンドを送る
+        ser.write(b"READ\n")
+
+        while i = 0:
+            str_to_num()
+
+        gridserch(4)
+        # 連続で送りすぎないよう少し待機
+        time.sleep(0.5)
+
+        
+        # Pico に測定開始を促すコマンドを送る
+        ser.write(b"READ\n")
+
+        while i = 0:
+            str_to_num()
+            
+        gridserch(7)
+        # 連続で送りすぎないよう少し待機
+        time.sleep(0.5)
+#         com = ser.readline().decode('utf-8', errors='ignore').strip()
+#         print("[Pico]:", com)
+            
+        # 必要なら speaker をオフにする処理を追加
+        # speakerON(0)
+
+
+        
+except KeyboardInterrupt:
+    print("Stopped by user")
+    ser.close()
+
+finally:
+    ser.flush()
+    ser.close()
+    
