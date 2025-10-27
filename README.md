@@ -1,7 +1,9 @@
 # Haptics_Gridserch
 空中音波ハプティクスのグリッドサーチを統合した版です。
-<img src="https://img.shields.io/badge/-{言語、フレームワーク名など}-{シールドのカラーコード}.svg?logo=next.js&style={バッチのスタイル}&logoColor={ロゴのカラーコード}">
-<img src="https://img.shields.io/badge/-Python-3776AB.svg?logo=python&style=plastic">
+##　使用技術一覧(パイソンくらい)
+<!-- 以下はシールド-->
+<img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout">
+
 2025年前期に作成したプログラムはラズベリーパイ上でDQN、PPOの2つの強化学習アルゴリズムを使用し、
 8つのスピーカーで出力した40kHzの超音波を一転に収束させるための最適な位相を探索するプログラムでした。
 フィードバックを受ける部分にはラズベリーパイピコを使用し、USB(シリアルバス通信)を使用し、電圧を文字としてラズパイに送信、その後文字を数字に変換して行っています
