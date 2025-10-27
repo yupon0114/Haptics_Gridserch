@@ -2,7 +2,7 @@
 空中音波ハプティクスのグリッドサーチを統合した版です。  
 研究室で開発したコードの保存のために作成しました。
 
-##　使用技術一覧(パイソンくらい)
+##　使用技術一覧(パイソンくらい)  
 <!-- 以下はシールド-->
 <img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout"><img src="https://img.shields.io/badge/-Raspberrypi-C51A4A.svg?logo=raspberrypi&style=popout">
 <img src="https://img.shields.io/badge/-Github-181717.svg?logo=github&style=popout"><img src="https://img.shields.io/badge/-Git-3cb371.svg?logo=git&style=popout-square">
