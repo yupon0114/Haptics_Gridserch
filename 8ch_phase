@@ -5,7 +5,8 @@ import numpy as np
 from scipy.optimize import least_squares
 
 
-
+#事前に測定したデータ
+#理想はピコで測定したデータを使用する
 x1 = 438.3 #実距離40
 x2 = 450.5 #実距離40
 x3 = 535.5 #実距離40
