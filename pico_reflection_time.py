@@ -3,6 +3,7 @@ import rp2
 from machine import Pin
 import time
 import sys
+import speaker_module
 
 # --- PIO: 入力立ち上がり検出用 (元のアセンブリをほぼ維持) ---
 @rp2.asm_pio(set_init=rp2.PIO.IN_LOW)
@@ -55,6 +56,13 @@ def calculate_statistics(data):
         stdev = var ** 0.5
     return mean, stdev, data
 
+def kakikae(phase):
+    speaker_module.phase_set(phase)
+    
+def speakerON(A):
+    # 例: A が 0/1 でオンオフを制御すると仮定
+    speaker_module.start_output(A)
+
 # --- GPIO設定 ---
 trigger_pin = Pin(12, Pin.IN, pull=Pin.PULL_DOWN)  # トリガー用（in_baseに使う）
 pins_capture_set = [13,14,15,16]     # キャプチャ対象ピンリストこのリストに使う予定のピンを全て入れてピンの準備をする
@@ -87,6 +95,7 @@ while True:
         result = [0, 0, 0, 0]
         for i in range(4):
             pins_capture = [pins_capture_set[i]]
+            speakerON(1)
             #print("READ")
             # FIFO のクリア（state machine の FIFO を空にする）
             for sm in sms:
