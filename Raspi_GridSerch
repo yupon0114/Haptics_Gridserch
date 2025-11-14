@@ -4,6 +4,7 @@ import serial
 import time
 import threading
 import numpy as np
+from scipy.optimize import least_squares
 
 port = '/dev/ttyACM0'
 # タイムアウトを設定して readline() が永久にブロックしないようにする
@@ -29,7 +30,6 @@ def  str_to_num():
                 print("数値に変換できませんでした:", line)
 
 
-
 def pico_listener():
     """常時シリアルを読み、行が来たら表示するスレッド"""
     while True:
@@ -51,66 +51,35 @@ def pico_listener():
         speaker_module.stop_output()
         return max(readings)
 
-
 listener_thread = threading.Thread(target=pico_listener, daemon=True)
 listener_thread.start()
 
 print("start")
-
-try:
-    while True:
-        # スピーカ/出力をオン（仮）
-        speakerON(1)
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(1)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(2)
-
+ser.write(b"READ\n")
+while True:
+    try:
+        # 1行ずつ読み込み
+        line = ser.readline().decode().strip()
+        if not line:
+            # データがまだ来ていなければ待機
+            time.sleep(0.05)
+            continue
         
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
+        # 受信データの例: "12.34,56.78,34.56,78.90"
+        try:
+            values = [float(v) for v in line.split(',')]
+            if len(values) == 4:
+                x1, x2, x3, x4 = values
+                print(f"Received: x1={x1}, x2={x2}, x3={x3}, x4={x4}")
+                break  # 1回受信したら終了（連続受信の場合は break を削除）
+            else:
+                print("データ形式が不正:", line)
+        except ValueError:
+            print("データ変換エラー:", line)
 
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(4)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-
-        
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-            
-        gridserch(7)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-#         com = ser.readline().decode('utf-8', errors='ignore').strip()
-#         print("[Pico]:", com)
-            
-        # 必要なら speaker をオフにする処理を追加
-        # speakerON(0)
-
-
-        
+    except KeyboardInterrupt:
+        print("終了します")
+        break
 except KeyboardInterrupt:
     print("Stopped by user")
     ser.close()
@@ -119,3 +88,117 @@ finally:
     ser.flush()
     ser.close()
     
+
+out_speaker = 1
+
+#SP1
+#つかうのはspeakers[0]→speaker[2,3,4,5]
+if out_speaker == 1:
+
+    y1 = 0.1299 * x1 - 21.365
+    y2 = 0.1485 * x2 - 34.509
+    y3 = 0.1476 * x3 - 36.803
+    y4 = 0.1393 * x4 - 31.511
+
+#SP2
+#つかうのはspeakers[1]→speaker[3,4,5,6]
+if out_speaker == 2:
+
+    y1 = 0.1276 * x1 - 19.575
+    y2 = 0.1384 * x2 - 27.104
+    y3 = 0.1295 * x3 - 21.838
+    y4 = 0.1440 * x4 - 30.703
+
+#SP4
+#つかうのはspeakers[3]→speaker[4,5,6,7]
+if out_speaker == 4:
+
+    y1 = 0.1430 * x1 - 32.639
+    y2 = 0.0960 * x2 - 0.9261
+    y3 = 1.1081 * x3 - 0.5466
+    y4 = 0.1355 * x4 - 27.21
+
+#SP7
+#つかうのはspeakers[6]→speaker[0,1,2,3]
+if out_speaker == 7:
+
+    y1 = 0.0137 * x1 - 53.156
+    y2 = 0.1450 * x2 - 25.755
+    y3 = 0.1494 * x3 - 32.612
+    y4 = 0.1448 * x4 - 30.975
+
+
+#以下が4つのスピーカーから得られた距離と、
+# スピーカーの座標からベクトル上の位置を推定するプログラム
+
+
+speakers = np.array([
+    [0, 13.9, 0.0],
+    [-13.9 * np.sin(np.pi / 4), 13.9 * np.cos(np.pi / 4), 0.0],
+    [-13.9, 0.0, 0.0],
+    [-13.9 * np.sin(np.pi / 4), -13.9 * np.cos(np.pi / 4), 0.0],
+    [0.0, -13.9, 0.0],
+    [13.9 * np.sin(np.pi / 4), -13.9 * np.cos(np.pi / 4), 0.0],
+    [13.9, 0, 0.0],
+    [13.9 * np.sin(np.pi / 4), 13.9 * np.cos(np.pi / 4), 0.0],
+])
+
+# 受信に使うスピーカー番号（Pythonのインデックス）
+receiver_idx = [2, 3, 4, 5]  # スピーカー3,4,5,6
+
+receivers = speakers[receiver_idx]
+
+# 受信スピーカーから対象物までの距離（例: 測定済みデータ）
+measured_distances = np.array([y1, y2, y3, y4])  # 単位は同じにする
+
+# グリッド作成（2mm刻み）
+x_range = np.arange(-60, 60.1, 2)
+y_range = np.arange(-60, 60.1, 2)
+z_range = np.arange(0, 80.1, 2)
+
+X, Y, Z = np.meshgrid(x_range, y_range, z_range, indexing='ij')
+grid_points = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
+
+# 対象物位置推定用関数
+def compute_error(point, receivers, measured_distances):
+    # 各受信スピーカーまでの距離
+    distances = np.linalg.norm(receivers - point, axis=1)
+    # 誤差（二乗誤差）
+    error = np.sum((distances - measured_distances)**2)
+    return error
+
+# グリッドサーチ
+min_error = float('inf')
+best_point = None
+
+for point in grid_points:
+    err = compute_error(point, receivers, measured_distances)
+    if err < min_error:
+        min_error = err
+        best_point = point
+
+print("推定対象物位置:", best_point)
+print("最小誤差:", min_error)
+
+# ==============================
+# 各スピーカーの位相を計算（リスト出力版）
+# ==============================
+
+c = 343.0        # 音速 [m/s]
+f = 40000.0      # 周波数 [Hz]
+wavelength = c / f  # 波長 [m]
+
+# 推定された物体位置（best_point）
+estimated_pos = np.array(best_point)
+
+# 各スピーカーから対象物までの距離 [m]
+distances = np.linalg.norm(speakers - estimated_pos, axis=1)
+
+# 各スピーカーの位相 [deg]
+phases_deg = np.degrees(2 * np.pi * (distances % wavelength) / wavelength)
+
+# 結果をリストで格納
+phase_list_deg = np.round(phases_deg).astype(int).tolist()
+
+print("=== 位相リスト [deg] ===")
+print(phase_list_deg)
