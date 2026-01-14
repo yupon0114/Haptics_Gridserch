@@ -201,6 +201,33 @@ def phase_set(list):
     configure_device(FSYNC7, 40000, list[6])
     configure_device(FSYNC8, 40000, list[7])
 
+def omajinai():
+    # SPI初期化
+    spi =  spidev.SpiDev()
+    spi.open(0,0)
+    spi.max_speed_hz = 500000
+    spi.mode = 2
+
+    # GPIO初期化
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(FSYNC1, GPIO.OUT)
+    GPIO.setup(FSYNC2, GPIO.OUT)
+    GPIO.setup(FSYNC3, GPIO.OUT)
+    GPIO.setup(FSYNC4, GPIO.OUT)
+    GPIO.setup(FSYNC5, GPIO.OUT)
+    GPIO.setup(FSYNC6, GPIO.OUT)
+    GPIO.setup(FSYNC7, GPIO.OUT)
+    GPIO.setup(FSYNC8, GPIO.OUT)
+
+    GPIO.output(FSYNC1, GPIO.HIGH)
+    GPIO.output(FSYNC2, GPIO.HIGH)
+    GPIO.output(FSYNC3, GPIO.HIGH)
+    GPIO.output(FSYNC4, GPIO.HIGH)
+    GPIO.output(FSYNC5, GPIO.HIGH)
+    GPIO.output(FSYNC6, GPIO.HIGH)
+    GPIO.output(FSYNC7, GPIO.HIGH)
+    GPIO.output(FSYNC8, GPIO.HIGH) 
+
 # 各チャンネルに周波数・位相を書き込み（リセット中）
 
 # for i in range(0, 1080, 180):
