@@ -1,11 +1,15 @@
 # ラズパイ側 (host)
-import speaker_module
 import serial
 import time
 import threading
 import numpy as np
+import scipy
+from scipy.optimize import least_squares
 
-port = '/dev/ttyACM0'
+try:
+    port = '/dev/ttyACM0'
+except serial.serialutil.SerialException as e:
+    port = '/dev/ttyACM1'
 # タイムアウトを設定して readline() が永久にブロックしないようにする
 ser = serial.Serial(port, 115200, timeout=0.5)
 
@@ -15,7 +19,7 @@ def kakikae(phase):
 def speakerON(A):
     # 例: A が 0/1 でオンオフを制御すると仮定
     speaker_module.start_output(A)
-
+"""
 def  str_to_num():
 
     while True:
@@ -29,9 +33,8 @@ def  str_to_num():
                 print("数値に変換できませんでした:", line)
 
 
-
 def pico_listener():
-    """常時シリアルを読み、行が来たら表示するスレッド"""
+
     while True:
         try:
             line = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -41,81 +44,258 @@ def pico_listener():
             # 受信で例外が起きたらログ出しして短時間待つ
             print(f"Serial read error: {e}")
             time.sleep(0.1)
-            
+"""
 
-    def _get_observation(self):
-        speaker_module.start_output(self.source_num)
-        readings = [float(ser.readline().decode('utf-8').strip()) for _ in range(5)]
-        print(f"readings1:{max(readings):.2f}")
-        #print("Readings:", readings, max(readings))
-        speaker_module.stop_output()
-        return max(readings)
+def _get_observation(self):
+    speaker_module.start_output(self.source_num)
+    readings = [float(ser.readline().decode('utf-8').strip()) for _ in range(5)]
+    print(f"readings1:{max(readings):.2f}")
+    #print("Readings:", readings, max(readings))
+    speaker_module.stop_output()
+    return max(readings)
 
-
-listener_thread = threading.Thread(target=pico_listener, daemon=True)
-listener_thread.start()
+# listener_thread = threading.Thread(target=pico_listener, daemon=True)
+# listener_thread.start()
 
 print("start")
+ser.write(b"start\n")
+print("sendcmd\n")
+
+# ==============================
+# 移動中央値用バッファの初期化
+# ==============================
+position_buffer = []
+buffer_size = 5  # 過去5回分の移動中央値
+measurement_count = 0  # 測定回数カウンタ
+max_measurements = 10  # 最大測定回数
+prev_distances = None  # 前回の距離データ（外れ値検出用）
+
+# グリッドデータの読み込み
+grid_points = np.load("positions_1.npy")
+
+# スピーカー配置
+speakers = np.array([
+    [0, -13.9, 0.0],
+    [-13.9 * np.sin(np.pi / 4),  -13.9 * np.cos(np.pi / 4), 0.0],
+    [-13.9, 0.0, 0.0],
+    [-13.9 * np.sin(np.pi / 4), 13.9 * np.cos(np.pi / 4), 0.0],
+    [0.0, -13.9, 0.0],
+    [13.9 * np.sin(np.pi / 4), 13.9 * np.cos(np.pi / 4), 0.0],
+    [13.9, 0.0, 0.0],
+    [13.9 * np.sin(np.pi / 4),  -13.9 * np.cos(np.pi / 4), 0.0],
+])
+
+# 受信に使うスピーカー番号（Pythonのインデックス）
+receiver_idx = [2, 3, 4, 5]  # スピーカー3,4,5,6
+receivers = speakers[receiver_idx]
+
+out_speaker = 1
+
+# 音速と周波数の設定
+c = 343_000  # 音速 [mm/s]
+f = 40_000.0  # 周波数 [Hz]
+wavelength = c / f  # 波長 [mm]
+
+# リンゴの初期位相
+PHASES = [0, 325, 350, 310, 310, 335, 350, 335]
+
+# 対象物位置推定用関数
+def compute_error(point, receivers, measured_distances):
+    # 各受信スピーカーまでの距離
+    distances = np.linalg.norm(receivers - point, axis=1)
+    # 誤差（二乗誤差）
+    error = np.sum((distances - measured_distances)**2)
+    return error
 
 try:
+    # 初回の有効データ待ち
     while True:
-        # スピーカ/出力をオン（仮）
-        speakerON(1)
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(1)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(2)
-
+        # 1行ずつ読み込み
+        line = ser.readline().decode().strip()
+        if not line:
+            # データがまだ来ていなければ待機
+            time.sleep(0.05)
+            continue
         
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
-
-        gridserch(4)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-
+        # 受信データの例: "12.34,56.78,34.56,78.90"
+        try:
+            values = [float(v) for v in line.split(',')]
+            if len(values) == 4:
+                x1, x2, x3, x4 = values
+                print(f"Received: x1={x1}, x2={x2}, x3={x3}, x4={x4}")
+                
+                if (1000 >= x1 >= 300 and 1000 >= x2 >= 300 and 1000 >= x3 >= 300 and 1000 >= x4 >= 300):
+                    print("有効データ受信。測定開始")
+                    break
+            else:
+                print("データ形式が不正:", line)
+        except ValueError:
+            print("データ変換エラー:", line)
+    
+    # ==============================
+    # メインループ（10回測定）
+    # ==============================
+    while measurement_count < max_measurements:
+        # 1行ずつ読み込み
+        line = ser.readline().decode().strip()
+        if not line:
+            time.sleep(0.05)
+            continue
         
-        # Pico に測定開始を促すコマンドを送る
-        ser.write(b"READ\n")
-
-        while i = 0:
-            str_to_num()
+        try:
+            values = [float(v) for v in line.split(',')]
+            if len(values) != 4:
+                continue
             
-        gridserch(7)
-        # 連続で送りすぎないよう少し待機
-        time.sleep(0.5)
-#         com = ser.readline().decode('utf-8', errors='ignore').strip()
-#         print("[Pico]:", com)
+            x1, x2, x3, x4 = values
             
-        # 必要なら speaker をオフにする処理を追加
-        # speakerON(0)
-
-
+            # 範囲チェック
+            if not (1000 >= x1 >= 300 and 1000 >= x2 >= 300 and 1000 >= x3 >= 300 and 1000 >= x4 >= 300):
+                print(f"範囲外データ: x1={x1}, x2={x2}, x3={x3}, x4={x4}")
+                continue
+            
+            start_time = time.time()
+            
+            # ==============================
+            # キャリブレーション式（SP1用）
+            # ==============================
+            if out_speaker == 1:
+                y1 = 0.1491 * x1 - 26.805
+                y2 = 0.1600 * x2 - 31.201
+                y3 = 0.1811 * x3 - 39.003
+                y4 = 0.1811 * x4 - 39.361
+            
+            # SP2用
+            elif out_speaker == 2:
+                y1 = 0.1276 * x1 - 19.575
+                y2 = 0.1384 * x2 - 27.104
+                y3 = 0.1295 * x3 - 21.838
+                y4 = 0.1440 * x4 - 30.703
+            
+            # SP4用
+            elif out_speaker == 4:
+                y1 = 0.1430 * x1 - 32.639
+                y2 = 0.0960 * x2 - 0.9261
+                y3 = 1.1081 * x3 - 0.5466
+                y4 = 0.1355 * x4 - 27.21
+            
+            # SP7用
+            elif out_speaker == 7:
+                y1 = 0.0137 * x1 - 53.156
+                y2 = 0.1450 * x2 - 25.755
+                y3 = 0.1494 * x3 - 32.612
+                y4 = 0.1448 * x4 - 30.975
+            
+            print(f"距離: y1={y1:.2f}, y2={y2:.2f}, y3={y3:.2f}, y4={y4:.2f}")
+            
+            # ==============================
+            # 距離データの検証（外れ値検出）
+            # ==============================
+            measured_distances = np.array([y1, y2, y3, y4])
+            
+            # 前回の距離データと比較（急激な変化を検出）
+            if prev_distances is not None:
+                distance_change = np.abs(measured_distances - prev_distances)
+                max_change = 50  # 50mm以上の急変は外れ値の可能性
+                
+                if np.any(distance_change > max_change):
+                    print(f"警告: 距離の急変を検出 変化量={distance_change.max():.1f}mm → スキップ")
+                    continue  # この測定はスキップ（カウントしない）
+            
+            prev_distances = measured_distances.copy()
+            
+            # 有効データが取れたらカウントアップ
+            measurement_count += 1
+            print(f"\n===== 測定 {measurement_count}/{max_measurements} =====")
+            
+            # ==============================
+            # グリッドサーチで位置推定
+            # ==============================
+            min_error = float('inf')
+            best_point = None
+            
+            for point in grid_points:
+                err = compute_error(point, receivers, measured_distances)
+                if err < min_error:
+                    min_error = err
+                    best_point = point
+            
+            print(f"瞬時位置: {best_point}, 誤差: {min_error:.2f}")
+            
+            # ==============================
+            # 移動中央値処理（外れ値に強い）
+            # ==============================
+            position_buffer.append(best_point.copy())
+            if len(position_buffer) > buffer_size:
+                position_buffer.pop(0)
+            
+            # 移動中央値を計算
+            if len(position_buffer) >= 3:  # 最低3点集まってから使用
+                median_position = np.median(position_buffer, axis=0)
+                print(f"平滑位置（中央値）: {median_position} (バッファ: {len(position_buffer)}/{buffer_size})")
+                use_position = median_position
+            else:
+                print(f"初期化中 ({len(position_buffer)}/{buffer_size})")
+                use_position = best_point
+            
+            # ==============================
+            # 位相計算（平滑位置を使用）
+            # ==============================
+            distances = np.linalg.norm(speakers - use_position, axis=1)
+            phases_deg = np.degrees(2 * np.pi * (distances % wavelength) / wavelength)
+            
+            # 結果をリストで格納
+            phase_list_deg = np.round(phases_deg).astype(int).tolist()
+            phase_list = [i - phase_list_deg[0] for i in phase_list_deg]
+            phase_list_ringo = [(x + y) % 360 for x, y in zip(PHASES, phase_list_deg)]
+            phase_list_a = [(i - phase_list_ringo[0]) % 360 for i in phase_list_ringo]  # スピーカ1を0にする
+            
+            print(f"実機投入位相: {phase_list_a}")
+            
+            end_time = time.time()
+            print(f"処理時間: {(end_time - start_time)*1000:.1f} ms")
         
+        except ValueError as e:
+            print(f"データ変換エラー: {line}, {e}")
+            continue
+        except Exception as e:
+            print(f"予期しないエラー: {e}")
+            continue
+    
+    # ==============================
+    # 10回測定完了後の最終処理
+    # ==============================
+    print("\n" + "="*50)
+    print("===== 10回測定完了 =====")
+    print("="*50)
+    
+    if len(position_buffer) >= 3:
+        final_position = np.median(position_buffer, axis=0)  # 最終も中央値
+        print(f"\n最終平滑位置（中央値）: {final_position}")
+        print(f"使用データ数: {len(position_buffer)}")
+        
+        # バッファ内のばらつきを表示
+        buffer_array = np.array(position_buffer)
+        std_pos = np.std(buffer_array, axis=0)
+        print(f"位置ばらつき(標準偏差): X={std_pos[0]:.2f}mm, Y={std_pos[1]:.2f}mm, Z={std_pos[2]:.2f}mm")
+        
+        # 最終位相計算
+        distances = np.linalg.norm(speakers - final_position, axis=1)
+        phases_deg = np.degrees(2 * np.pi * (distances % wavelength) / wavelength)
+        phase_list_deg = np.round(phases_deg).astype(int).tolist()
+        phase_list_ringo = [(x + y) % 360 for x, y in zip(PHASES, phase_list_deg)]
+        phase_list_a = [(i - phase_list_ringo[0]) % 360 for i in phase_list_ringo]
+        
+        print(f"\n最終実機投入位相: {phase_list_a}")
+    else:
+        print("データが不足しています")
+
 except KeyboardInterrupt:
-    print("Stopped by user")
-    ser.close()
+    print("\nStopped by user")
+    ser.write(b"stop\n")
 
 finally:
+    ser.write(b"stop\n")
     ser.flush()
     ser.close()
-    
+    print("\nシリアルポートを閉じました")
