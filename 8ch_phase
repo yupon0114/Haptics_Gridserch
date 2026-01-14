@@ -5,7 +5,8 @@ import numpy as np
 from scipy.optimize import least_squares
 
 
-
+#事前に測定したデータ
+#理想はピコで測定したデータを使用する
 x1 = 438.3 #実距離40
 x2 = 450.5 #実距離40
 x3 = 535.5 #実距離40
@@ -113,8 +114,11 @@ wavelength = c / f  # 波長 [m]
 # 推定された物体位置（best_point）
 estimated_pos = np.array(best_point)
 
-# 位相を度数法に変換 [deg]
-phases_deg = np.degrees(phases_rad)
+# 各スピーカーから対象物までの距離 [m]
+distances = np.linalg.norm(speakers - estimated_pos, axis=1)
+
+# 各スピーカーの位相 [deg]
+phases_deg = np.degrees(2 * np.pi * (distances % wavelength) / wavelength)
 
 # 結果をリストで格納
 phase_list_deg = np.round(phases_deg).astype(int).tolist()
