@@ -27,32 +27,32 @@ speaker_moduleはラズベリーパイおよびピコで使用する関数や最
 実行例として、ピコでprint(192.54,189.76)を送信し、ラズパイで　line = ser.readline().decode().strip()　を実行すると文字データとして"192.54,189.76"が得られます。この際、ラズベリーパイが受け取れるのは一行ずつ、またプリントされた文字列の行先はいわゆるデータ保存におけるキュー構造になっており、ラズベリーパイはピコがプログラム実行中にprintした内容を古い順に1行ずつ読み取ります。つまりピコがデータを連続でprintし続ける場合(例えば測定した電圧など)、それを上回る速度でラズパイが読み取らないとどんどん処理するのが過去のデータにずれていきます。対処法として、ピコのデータ送信を上回る速度でラズパイが処理できるようにするか、ラズパイからコマンドが送られてきたらその時点の最新の測定データを一回だけ送信とするなどして私は回避しました。
 また一行しか読み取れない上に文字列なので、以下の箇所の様に、カンマ区切りで分割して変数に代入した後、数字にデータを変換して利用しています。また極端なデータが来たら再度データ取得待ちに戻ったり、エラーが起きやすいのでtry:を使用してエラーが起きても止まらないようにしています。よく思いついた自分。　　
 
-print("start")
-ser.write(b"READ\n")
-while True:
-    try:
-        # 1行ずつ読み込み
-        line = ser.readline().decode().strip()
-        if not line:
-            # データがまだ来ていなければ待機
-            time.sleep(0.05)
-            continue
-        
-        # 受信データの例: "12.34,56.78,34.56,78.90"
+    print("start")
+    ser.write(b"READ\n")
+    while True:
         try:
-            values = [float(v) for v in line.split(',')]
-            if len(values) == 4:
-                x1, x2, x3, x4 = values
-                print(f"Received: x1={x1}, x2={x2}, x3={x3}, x4={x4}")
-                
-                if (1000 >= x1 >= 300 and 1000 >= x2 >= 300 and 1000 >= x3 >= 300 and 1000 >= x4 >= 300):
-                    print("有効データ受信。測定開始")
-                    break
-                break  # 1回受信したら終了（連続受信の場合は break を削除）
-            else:
-                print("データ形式が不正:", line)
-        except ValueError:
-            print("データ変換エラー:", line)
+            # 1行ずつ読み込み
+            line = ser.readline().decode().strip()
+            if not line:
+                # データがまだ来ていなければ待機
+                time.sleep(0.05)
+                continue
+            
+            # 受信データの例: "12.34,56.78,34.56,78.90"
+            try:
+                values = [float(v) for v in line.split(',')]
+                if len(values) == 4:
+                    x1, x2, x3, x4 = values
+                    print(f"Received: x1={x1}, x2={x2}, x3={x3}, x4={x4}")
+                    
+                    if (1000 >= x1 >= 300 and 1000 >= x2 >= 300 and 1000 >= x3 >= 300 and 1000 >= x4 >= 300):
+                        print("有効データ受信。測定開始")
+                        break
+                    break  # 1回受信したら終了（連続受信の場合は break を削除）
+                else:
+                    print("データ形式が不正:", line)
+            except ValueError:
+                print("データ変換エラー:", line)
 
 
 
