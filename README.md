@@ -2,7 +2,7 @@
 空中音波ハプティクスの研究のためにラズベリーパイで使用したソフトウェアを保存するためのリポジトリです。  
 研究室で開発したコードの保存のために作成しました。
 
-## 使用技術一覧(パイソンくらい)  
+*使用技術一覧(パイソンくらい)*  
 <!-- 以下はシールド-->
 
  <img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout"><img src="https://img.shields.io/badge/-Raspberrypi-C51A4A.svg?logo=raspberrypi&style=popout">
@@ -10,8 +10,9 @@
 <img src="https://img.shields.io/badge/-Numpy-0000CD.svg?logo=Python&style=plastic">
 <img src="https://img.shields.io/badge/-Github-181717.svg?logo=github&style=popout">
 <img src="https://img.shields.io/badge/-Git-3cb371.svg?logo=git&style=popout-square">
-
 <!--ここから説明-->
+
+##このリポジトリの概要
 2025年前期に作成したプログラムはラズベリーパイ上でDQN、PPOの2つの強化学習アルゴリズムを使用し、8つのスピーカーで出力した40kHzの超音波を一転に収束させることができる最適な位相を自動探索するプログラムでした。  
 フィードバックを受ける部分にはラズベリーパイピコを使用し、USB(シリアルバス通信)を使用し、電圧を文字としてラズパイに送信、その後文字を数字に変換して行っています。  
 
@@ -22,8 +23,8 @@ Raspi_GridSerchはラズベリーパイ4上で動作するプログラムです�
 pico_reflection_timeはラズベリーパイピコ上で動作するプログラムになります。picoのメイン関数に書き込んで使用しています。
 speaker_moduleはラズベリーパイおよびピコで使用する関数や最初に行うGPIOピンの初期化処理などが入ったモジュールです。ラズベリーパイもラズパイピコもこちらを使用しています。実行するプログラムと同じディレクトリ（階層）にファイルが無いと使えません♘　　
 
-1/14記載  
-システムについてのざっくりした説明　　
+
+###システムについての説明　　
 ラズパイとラズパイピコはusb接続したうえで、ラズベリーパイからピコへの通信はシリアルポート通信を使用しています。ラズパイ→ピコ　と　ピコ→ラズパイは手順が違うので気をつけてください。  
 ラズパイ→ピコはser.write(b"start\n")というコードで文字列を送信し、ピコ上で cmd = sys.stdin.readline().strip() を実行すると文字データとしてcmdという変数に"start"が代入され、ピコ上で文字列を受け取ることができる、という流れです。ちなみにwriteはlinuxのシステムコールの一種で、ハードウェアの機能を呼び出して使用していることになります。  
 この際、ピコ上で実行しているsys.stdin.readline().strip()はラズベリーパイが何も送っていない状態で実行するとそこで止まります。raspi_refletion_timeはその特性を使用して、ラズベリーパイが何か送ってきたら始める、という処理を一行で実装しています。ラズパイからは"start"を送信しています。  
