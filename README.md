@@ -5,7 +5,7 @@
 ##　使用技術一覧(パイソンくらい)  
 <!-- 以下はシールド-->
 
-<img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout">
+ <img src="https://img.shields.io/badge/-Python-ffff00.svg?logo=python&style=popout">
 <img src="https://img.shields.io/badge/-Raspberrypi-C51A4A.svg?logo=raspberrypi&style=popout">
 <img src="https://img.shields.io/badge/-Linux-FCC624.svg?logo=linux&style=plastic">
 <img src="https://img.shields.io/badge/-Numpy-0000CD.svg?logo=Python&style=plastic">
