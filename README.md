@@ -30,12 +30,12 @@ speaker_moduleはラズベリーパイおよびピコで使用する関数や最
 まずプログラムの頭にportの設定を書きます。このコードは、Raspberry Pi から USB接続されたマイコン（例：Arduino、raspberrypi pico） とシリアル通信を行うために、接続ポートを指定し、通信速度とタイムアウトを設定してシリアルポートを開く処理です。
 Raspberry Pi（Linux）では、USBシリアルデバイスは通常/dev/ttyACM0、/dev/ttyACM1のどちらかとして認識され、再起動でもう片方に勝手に変わります。try関数を使用し、例外処理を挟むことで設定に失敗したら自動でもう片方に設定します。
 
- try:
-     port = '/dev/ttyACM0'
- except serial.serialutil.SerialException as e:
-     port = '/dev/ttyACM1'
- # タイムアウトを設定して readline() が永久にブロックしないようにする
- ser = serial.Serial(port, 115200, timeout=0.5)
+    try:
+        port = '/dev/ttyACM0'
+    except serial.serialutil.SerialException as e:
+        port = '/dev/ttyACM1'
+    # タイムアウトを設定して readline() が永久にブロックしないようにする
+    ser = serial.Serial(port, 115200, timeout=0.5)
 
 *データのやり取り*
 ラズパイ→ピコはser.write(b"start\n")というコードで文字列を送信し、ピコ上で cmd = sys.stdin.readline().strip() を実行すると文字データとしてcmdという変数に"start"が代入され、ピコ上で文字列を受け取ることができる、という流れです。ちなみにwriteはlinuxのシステムコールの一種で、ハードウェアの機能を呼び出して使用していることになります。  
